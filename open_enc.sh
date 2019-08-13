@@ -82,17 +82,17 @@
 ints=1500
 mem=5
 
-# Mount a usable 250mb folder in ram
+# Mount a temp 50mb folder in ram
 sudo mkdir /media/ram
-sudo mount -t tmpfs -o size=250M tmpfs /media/ram/
+sudo mount -t tmpfs -o size=50M tmpfs /media/ram/
 
 # Install Argron2 for KDF if not already installed
 if [ "$(type argon2)" != "argon2 is /usr/bin/argon2" ]
 then
-sudo apt install argon2
+	sudo apt install argon2
 fi
 
-echo "Mount or encrypt drive..."
+echo "Mount existing or encrypt new drive..."
 echo "Type 'exit' to quit."
 echo
 
@@ -117,14 +117,15 @@ if ! [[ $pin_num =~ $re ]] ; then
    echo "error: Not a number" >&2; exit 1
 fi
 
-# 
+# Start point for collecting the salt not rigth at the start of the file
 pin_num=$(( ($pin_num * 5) -745 ))
 
-# Select keyfile source $kfsrce
+# List drives to choose from
 echo
 lsblk
 echo
 
+# Select keyfile source $kfsrce
 read -p "Password salt source eg. sdx#: " kfsrce
 echo
 
@@ -166,7 +167,6 @@ fi
 # Get 256byte salt from drive random data source (repalce null with newline)
 salt="$(sudo dd if=/dev/$kfsrce skip=$pin_num bs=192 count=1 iflag=skip_bytes status=none | tr '\0' '\n' | base64 -w 0)"
 
-
 # Hash the password with a random salt sha256
 pwd="$(echo $pwd$salt | sha256sum | head -c64)"
 
@@ -188,7 +188,6 @@ then
     echo "Creating new encrypted device..."
  # Use Argon2id with 650 interations and 16384kb memory
     sudo cryptsetup luksFormat /dev/$e_drv /media/ram/pwd --type luks2 --hash sha512 --cipher aes-xts-plain64be --key-size 512 --sector-size 4096 --use-random --pbkdf argon2id --pbkdf-force-iterations 650 --pbkdf-memory 16384
-
 
 # Open the encrypted device
     sudo cryptsetup open /dev/$e_drv $map --type luks2 --key-file /media/ram/pwd
@@ -268,8 +267,6 @@ iv="$(dd if=/dev/urandom bs=128 count=1 status=none | tr '\0' '\n')"
 pin_num="$(dd if=/dev/urandom bs=128 count=1 status=none | tr '\0' '\n')"
 salt="$(dd if=/dev/urandom bs=128 count=1 status=none | tr '\0' '\n')"
 pwd="$(dd if=/dev/urandom bs=128 count=1 status=none | tr '\0' '\n')"
-
-# sudo shred -fun 5 /media/ram/pwd
 
 # Remove the tmp ramdisk
 sudo umount -lf /media/ram
