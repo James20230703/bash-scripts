@@ -125,12 +125,12 @@ echo
 lsblk
 echo
 
-# Select keyfile source $kfsrce
-read -p "Password salt source eg. sdx#: " kfsrce
+# Select keyfile source $salt_src
+read -p "Password salt source eg. sdx#: " salt_src
 echo
 
 # IF not a block device exit
-if [ ! -b "/dev/$kfsrce" ]
+if [ ! -b "/dev/$salt_src" ]
 then
 	echo "Not a block device... Exiting!"
 	exit
@@ -164,8 +164,8 @@ then
     exit
 fi
 
-# Get 256byte salt from drive random data source (repalce null with newline)
-salt="$(sudo dd if=/dev/$kfsrce skip=$pin_num bs=192 count=1 iflag=skip_bytes status=none | tr '\0' '\n' | base64 -w 0)"
+# Get 256byte salt from drive random data source (replace null with newline)
+salt="$(sudo dd if=/dev/$salt_src skip=$pin_num bs=192 count=1 iflag=skip_bytes status=none | tr '\0' '\n' | base64 -w 0)"
 
 # Hash the password with a random salt sha256
 pwd="$(echo $pwd$salt | sha256sum | head -c64)"
@@ -195,7 +195,7 @@ then
 # Format device with ext4 file system
 	sudo mkfs -t ext4 /dev/mapper/$map
 
-# Mount device
+# Mount encrypted device
 	sudo mkdir /media/$map
 	sudo mount /dev/mapper/$map /media/$map
 	sudo chown -R laptop /media/$map
